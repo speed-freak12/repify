@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repify - Your Workout Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        .exercise-card:hover, .gender-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-lg">Connecting to your gym...</p>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+        
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dumbbell"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m6 2 4 4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/><rect width="5" height="5" x="3" y="16" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/></svg>
+                Repify
+            </h1>
+            <p class="text-gray-400 mt-2">Your personal workout tracker. Log your lifts, see your progress.</p>
+        </header>
+
+        <div id="auth-info" class="text-center mb-6 text-sm text-gray-500 hidden">
+            <p>Your User ID (Share with no one): <span id="user-id-display" class="font-mono bg-gray-800 px-2 py-1 rounded"></span></p>
+        </div>
+
+        <!-- Gender Selection -->
+        <div id="gender-selection" class="text-center mb-8">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-300">Who is this workout for?</h2>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-6">
+                <button id="men-btn" class="gender-btn w-full sm:w-48 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg flex items-center justify-center gap-2">
+                    <i data-lucide="user"></i> Men
+                </button>
+                <button id="women-btn" class="gender-btn w-full sm:w-48 bg-pink-600 hover:bg-pink-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg flex items-center justify-center gap-2">
+                    <i data-lucide="user-round"></i> Women
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <main id="main-content" class="grid grid-cols-1 lg:grid-cols-2 gap-8 hidden">
+            
+            <!-- Left Column: Exercise Library -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Exercise Library</h2>
+                
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <div>
+                        <label for="muscle-filter" class="block text-sm font-medium text-gray-400 mb-1">Muscle Group</label>
+                        <select id="muscle-filter" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full">
+                            <option value="all">All</option>
+                            <option value="Chest">Chest</option>
+                            <option value="Back">Back</option>
+                            <option value="Legs">Legs</option>
+                            <option value="Shoulders">Shoulders</option>
+                            <option value="Biceps">Biceps</option>
+                            <option value="Triceps">Triceps</option>
+                            <option value="Core">Core</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="difficulty-filter" class="block text-sm font-medium text-gray-400 mb-1">Difficulty</label>
+                        <select id="difficulty-filter" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full">
+                            <option value="all">All</option>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Exercise List -->
+                <div id="exercise-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                    <!-- Exercise cards will be injected here -->
+                </div>
+            </div>
+            
+            <!-- Right Column: Workout Log & History -->
+            <div class="space-y-8">
+                <!-- Current Workout Log -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Today's Workout</h2>
+                    <div id="current-workout-list" class="space-y-4">
+                        <p id="start-prompt" class="text-gray-500">Add an exercise from the library to begin your workout.</p>
+                        <!-- Logged exercises will be injected here -->
+                    </div>
+                    <button id="save-workout-btn" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                        <i data-lucide="save"></i>
+                        Save Workout
+                    </button>
+                </div>
+                
+                <!-- Workout History -->
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Workout History</h2>
+                    <div id="workout-history" class="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                        <p class="text-gray-500">Your saved workouts will appear here.</p>
+                        <!-- History will be injected here -->
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- MOCK DATA: EXERCISE LIBRARY ---
+        const exercises = [
+            // Both
+            { name: 'Bench Press', muscleGroup: 'Chest', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Bench+Press', gender: 'Both' },
+            { name: 'Push-ups', muscleGroup: 'Chest', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Push-ups', gender: 'Both' },
+            { name: 'Dumbbell Flyes', muscleGroup: 'Chest', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Dumbbell+Flyes', gender: 'Both' },
+            { name: 'Deadlift', muscleGroup: 'Back', difficulty: 'Advanced', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Deadlift', gender: 'Both' },
+            { name: 'Bent-over Rows', muscleGroup: 'Back', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Bent-over+Rows', gender: 'Both' },
+            { name: 'Lat Pulldowns', muscleGroup: 'Back', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Lat+Pulldowns', gender: 'Both' },
+            { name: 'Squats', muscleGroup: 'Legs', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Squats', gender: 'Both' },
+            { name: 'Lunges', muscleGroup: 'Legs', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Lunges', gender: 'Both' },
+            { name: 'Leg Press', muscleGroup: 'Legs', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Leg+Press', gender: 'Both' },
+            { name: 'Overhead Press', muscleGroup: 'Shoulders', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Overhead+Press', gender: 'Both' },
+            { name: 'Lateral Raises', muscleGroup: 'Shoulders', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Lateral+Raises', gender: 'Both' },
+            { name: 'Face Pulls', muscleGroup: 'Shoulders', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Face+Pulls', gender: 'Both' },
+            { name: 'Bicep Curls', muscleGroup: 'Biceps', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Bicep+Curls', gender: 'Both' },
+            { name: 'Hammer Curls', muscleGroup: 'Biceps', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Hammer+Curls', gender: 'Both' },
+            { name: 'Tricep Dips', muscleGroup: 'Triceps', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Tricep+Dips', gender: 'Both' },
+            { name: 'Tricep Pushdowns', muscleGroup: 'Triceps', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Tricep+Pushdowns', gender: 'Both' },
+            { name: 'Plank', muscleGroup: 'Core', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Plank', gender: 'Both' },
+            { name: 'Crunches', muscleGroup: 'Core', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Crunches', gender: 'Both' },
+            // Men Specific
+            { name: 'Pull-ups', muscleGroup: 'Back', difficulty: 'Advanced', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Pull-ups', gender: 'Men' },
+            { name: 'Incline Dumbbell Press', muscleGroup: 'Chest', difficulty: 'Advanced', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Incline+Press', gender: 'Men' },
+            { name: 'Arnold Press', muscleGroup: 'Shoulders', difficulty: 'Advanced', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Arnold+Press', gender: 'Men' },
+            // Women Specific
+            { name: 'Hip Thrusts', muscleGroup: 'Legs', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Hip+Thrusts', gender: 'Women' },
+            { name: 'Glute Bridges', muscleGroup: 'Legs', difficulty: 'Beginner', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Glute+Bridges', gender: 'Women' },
+            { name: 'Assisted Pull-ups', muscleGroup: 'Back', difficulty: 'Intermediate', image: 'https://placehold.co/100x100/374151/e5e7eb?text=Assisted+Pull-ups', gender: 'Women' }
+        ];
+
+        // --- DOM ELEMENTS ---
+        const genderSelectionEl = document.getElementById('gender-selection');
+        const mainContentEl = document.getElementById('main-content');
+        const menBtn = document.getElementById('men-btn');
+        const womenBtn = document.getElementById('women-btn');
+        const exerciseListEl = document.getElementById('exercise-list');
+        const muscleFilterEl = document.getElementById('muscle-filter');
+        const difficultyFilterEl = document.getElementById('difficulty-filter');
+        const currentWorkoutListEl = document.getElementById('current-workout-list');
+        const saveWorkoutBtn = document.getElementById('save-workout-btn');
+        const workoutHistoryEl = document.getElementById('workout-history');
+        const startPrompt = document.getElementById('start-prompt');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const authInfo = document.getElementById('auth-info');
+
+
+        // --- STATE ---
+        let currentWorkout = [];
+        let db, auth, userId, selectedGender;
+        let unsubscribeHistory; // To store the onSnapshot listener
+
+        // --- FIREBASE INITIALIZATION ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gym-tracker-default';
+        let firebaseConfig;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        } catch(e) {
+            console.error("Failed to parse firebase config:", e);
+        }
+
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.error("Firebase config is not available.");
+                loadingOverlay.innerHTML = "<p class='text-red-400'>Error: Firebase configuration is missing.</p>";
+                return;
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        authInfo.classList.remove('hidden');
+                        await fetchWorkoutHistory();
+                    } else {
+                        try {
+                             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Error during sign-in:", error);
+                        }
+                    }
+                    loadingOverlay.style.display = 'none';
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                loadingOverlay.innerHTML = "<p class='text-red-400'>Could not connect to the database.</p>";
+            }
+        }
+
+        // --- RENDERING FUNCTIONS ---
+        function renderExercises() {
+            if (!selectedGender) return;
+
+            const muscleGroup = muscleFilterEl.value;
+            const difficulty = difficultyFilterEl.value;
+
+            const filteredExercises = exercises.filter(ex => 
+                (ex.gender === selectedGender || ex.gender === 'Both') &&
+                (muscleGroup === 'all' || ex.muscleGroup === muscleGroup) &&
+                (difficulty === 'all' || ex.difficulty === difficulty)
+            );
+
+            exerciseListEl.innerHTML = '';
+            if (filteredExercises.length === 0) {
+                exerciseListEl.innerHTML = `<p class="text-gray-500">No exercises match the current filters.</p>`;
+                return;
+            }
+
+            filteredExercises.forEach(ex => {
+                const card = document.createElement('div');
+                card.className = 'exercise-card bg-gray-700 p-4 rounded-lg flex items-center gap-4 transition duration-300';
+                card.innerHTML = `
+                    <img src="${ex.image}" alt="${ex.name}" class="w-16 h-16 rounded-md object-cover flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/100x100/1f2937/9ca3af?text=Image+Error';">
+                    <div class="flex-grow">
+                        <h4 class="font-semibold text-lg">${ex.name}</h4>
+                        <p class="text-sm text-gray-400">${ex.muscleGroup} - ${ex.difficulty}</p>
+                    </div>
+                    <button data-name="${ex.name}" class="add-exercise-btn bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full flex-shrink-0">
+                        <i data-lucide="plus" class="pointer-events-none"></i>
+                    </button>
+                `;
+                exerciseListEl.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function renderCurrentWorkout() {
+            currentWorkoutListEl.innerHTML = '';
+            if (currentWorkout.length === 0) {
+                currentWorkoutListEl.appendChild(startPrompt);
+                saveWorkoutBtn.disabled = true;
+                return;
+            }
+            startPrompt.remove();
+            saveWorkoutBtn.disabled = false;
+
+            currentWorkout.forEach((ex, index) => {
+                const exerciseEl = document.createElement('div');
+                exerciseEl.className = 'bg-gray-700 p-4 rounded-lg';
+                exerciseEl.dataset.index = index;
+
+                let setsHtml = ex.sets.map((set, setIndex) => `
+                    <div class="flex items-center gap-3 mb-2" data-set-index="${setIndex}">
+                        <span class="font-semibold text-gray-400">Set ${setIndex + 1}</span>
+                        <input type="number" placeholder="Reps" value="${set.reps}" class="reps-input bg-gray-600 border border-gray-500 rounded-md px-2 py-1 w-20 text-center">
+                        <span class="text-gray-400">x</span>
+                        <input type="number" placeholder="Weight" value="${set.weight}" class="weight-input bg-gray-600 border border-gray-500 rounded-md px-2 py-1 w-24 text-center">
+                        <span class="text-gray-400">kg</span>
+                        <button class="remove-set-btn text-red-400 hover:text-red-500 ml-auto"><i data-lucide="trash-2" class="h-5 w-5 pointer-events-none"></i></button>
+                    </div>
+                `).join('');
+
+                exerciseEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-semibold text-lg">${ex.name}</h4>
+                        <button class="remove-exercise-btn text-red-500 hover:text-red-600">
+                            <i data-lucide="x-circle" class="pointer-events-none"></i>
+                        </button>
+                    </div>
+                    <div class="sets-container space-y-2">${setsHtml}</div>
+                    <button class="add-set-btn mt-3 text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-1 px-3 rounded-md">Add Set</button>
+                `;
+                currentWorkoutListEl.appendChild(exerciseEl);
+            });
+            lucide.createIcons();
+        }
+
+        function renderWorkoutHistory(workouts) {
+            workoutHistoryEl.innerHTML = '';
+            if (workouts.length === 0) {
+                workoutHistoryEl.innerHTML = `<p class="text-gray-500">Your saved workouts will appear here.</p>`;
+                return;
+            }
+            
+            // Sort workouts by date, newest first
+            const sortedWorkouts = workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedWorkouts.forEach(workout => {
+                const date = new Date(workout.date).toLocaleDateString(undefined, {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+                const workoutEl = document.createElement('div');
+                workoutEl.className = 'bg-gray-700 p-4 rounded-lg';
+                
+                const exercisesHtml = workout.exercises.map(ex => `
+                    <li class="ml-4">
+                        <strong class="font-semibold">${ex.name}</strong>: 
+                        ${ex.sets.map(s => `${s.reps} reps @ ${s.weight}kg`).join(', ')}
+                    </li>
+                `).join('');
+
+                workoutEl.innerHTML = `
+                    <h4 class="font-semibold text-md text-blue-300">${date}</h4>
+                    <ul class="list-disc list-inside text-gray-300 mt-2 text-sm">
+                        ${exercisesHtml}
+                    </ul>
+                `;
+                workoutHistoryEl.appendChild(workoutEl);
+            });
+        }
+
+
+        // --- EVENT HANDLERS ---
+        function handleGenderSelection(gender) {
+            selectedGender = gender;
+            genderSelectionEl.classList.add('hidden');
+            mainContentEl.classList.remove('hidden');
+            renderExercises();
+        }
+
+        function handleAddExercise(e) {
+            if (!e.target.closest('.add-exercise-btn')) return;
+            const name = e.target.closest('.add-exercise-btn').dataset.name;
+            if (currentWorkout.some(ex => ex.name === name)) {
+                // Potentially add a visual indicator that it's already added
+                console.log("Exercise already in workout.");
+                return;
+            }
+            currentWorkout.push({
+                name,
+                sets: [{ reps: '', weight: '' }] // Start with one empty set
+            });
+            renderCurrentWorkout();
+        }
+
+        function handleCurrentWorkoutInteraction(e) {
+            const target = e.target;
+            const exerciseEl = target.closest('[data-index]');
+            if (!exerciseEl) return;
+            
+            const index = parseInt(exerciseEl.dataset.index);
+
+            // Remove exercise
+            if (target.closest('.remove-exercise-btn')) {
+                currentWorkout.splice(index, 1);
+                renderCurrentWorkout();
+            }
+
+            // Add set
+            if (target.classList.contains('add-set-btn')) {
+                currentWorkout[index].sets.push({ reps: '', weight: '' });
+                renderCurrentWorkout();
+            }
+            
+            // Remove set
+            const setEl = target.closest('[data-set-index]');
+            if(target.closest('.remove-set-btn') && setEl){
+                 const setIndex = parseInt(setEl.dataset.setIndex);
+                 if(currentWorkout[index].sets.length > 1) {
+                    currentWorkout[index].sets.splice(setIndex, 1);
+                    renderCurrentWorkout();
+                 }
+            }
+
+            // Update state on input change
+            if (target.classList.contains('reps-input') || target.classList.contains('weight-input')) {
+                const setIndex = parseInt(setEl.dataset.setIndex);
+                if (target.classList.contains('reps-input')) {
+                    currentWorkout[index].sets[setIndex].reps = target.value;
+                } else {
+                    currentWorkout[index].sets[setIndex].weight = target.value;
+                }
+            }
+        }
+
+        async function handleSaveWorkout() {
+            if (!userId) {
+                console.error("User not authenticated, cannot save workout.");
+                return;
+            }
+            saveWorkoutBtn.disabled = true;
+            saveWorkoutBtn.innerHTML = `<div class="loader-sm border-t-white w-5 h-5"></div> Saving...`;
+
+            // Filter out empty sets
+            const finalWorkout = {
+                date: new Date().toISOString(),
+                exercises: currentWorkout.map(ex => ({
+                    name: ex.name,
+                    sets: ex.sets.filter(s => s.reps && s.weight).map(s => ({
+                        reps: Number(s.reps),
+                        weight: Number(s.weight)
+                    }))
+                })).filter(ex => ex.sets.length > 0)
+            };
+
+            if (finalWorkout.exercises.length === 0) {
+                 console.log("Cannot save an empty workout.");
+                 resetSaveButton();
+                 return;
+            }
+            
+            try {
+                const workoutCollection = collection(db, `artifacts/${appId}/users/${userId}/workouts`);
+                await addDoc(workoutCollection, finalWorkout);
+                currentWorkout = [];
+                renderCurrentWorkout();
+            } catch (error) {
+                console.error("Error saving workout: ", error);
+            } finally {
+                resetSaveButton();
+            }
+        }
+        
+        function resetSaveButton() {
+            saveWorkoutBtn.disabled = currentWorkout.length === 0;
+            saveWorkoutBtn.innerHTML = `<i data-lucide="save"></i> Save Workout`;
+            lucide.createIcons();
+        }
+
+        // --- DATA FETCHING ---
+        async function fetchWorkoutHistory() {
+            if (!userId) return;
+            
+            // Unsubscribe from previous listener if it exists
+            if (unsubscribeHistory) {
+                unsubscribeHistory();
+            }
+
+            const workoutCollection = collection(db, `artifacts/${appId}/users/${userId}/workouts`);
+            const q = query(workoutCollection);
+
+            unsubscribeHistory = onSnapshot(q, (querySnapshot) => {
+                const workouts = [];
+                querySnapshot.forEach((doc) => {
+                    workouts.push({ id: doc.id, ...doc.data() });
+                });
+                renderWorkoutHistory(workouts);
+            }, (error) => {
+                console.error("Error fetching workout history:", error);
+            });
+        }
+
+
+        // --- INITIALIZATION ---
+        function init() {
+            lucide.createIcons();
+            
+            // Event Listeners
+            menBtn.addEventListener('click', () => handleGenderSelection('Men'));
+            womenBtn.addEventListener('click', () => handleGenderSelection('Women'));
+            muscleFilterEl.addEventListener('change', renderExercises);
+            difficultyFilterEl.addEventListener('change', renderExercises);
+            exerciseListEl.addEventListener('click', handleAddExercise);
+            currentWorkoutListEl.addEventListener('click', handleCurrentWorkoutInteraction);
+            currentWorkoutListEl.addEventListener('input', handleCurrentWorkoutInteraction);
+            saveWorkoutBtn.addEventListener('click', handleSaveWorkout);
+
+            initializeFirebase();
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
